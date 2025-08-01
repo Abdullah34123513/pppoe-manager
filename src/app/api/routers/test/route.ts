@@ -7,10 +7,19 @@ export async function POST(request: NextRequest) {
   try {
     console.log('Test connection request received')
     
+    // Check for session
     const session = await getServerSession(authOptions)
+    console.log('Session check result:', session ? 'Authenticated' : 'Not authenticated')
+    
     if (!session) {
-      console.log('Unauthorized test connection attempt')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      console.log('Unauthorized test connection attempt - no session found')
+      return NextResponse.json({ error: 'Unauthorized - No session found' }, { status: 401 })
+    }
+
+    // Check if the session has the required user information
+    if (!session.user || !session.user.id) {
+      console.log('Invalid session - missing user information')
+      return NextResponse.json({ error: 'Unauthorized - Invalid session' }, { status: 401 })
     }
 
     const body = await request.json()

@@ -77,9 +77,19 @@ export function RouterForm({ router, onSuccess, onCancel }: RouterFormProps) {
         body: JSON.stringify(data),
       })
 
+      console.log('Test connection response status:', response.status)
+      console.log('Test connection response headers:', response.headers)
+
       // Check if response is ok before parsing JSON
       if (!response.ok) {
         const errorText = await response.text()
+        console.error('Test connection error response:', errorText)
+        
+        // Check if the response is HTML (redirect to login page)
+        if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+          throw new Error('Authentication failed. Please log in again.')
+        }
+        
         throw new Error(`HTTP ${response.status}: ${errorText}`)
       }
 
@@ -87,6 +97,7 @@ export function RouterForm({ router, onSuccess, onCancel }: RouterFormProps) {
       let result
       try {
         result = await response.json()
+        console.log('Test connection result:', result)
       } catch (jsonError) {
         console.error('JSON parsing error:', jsonError)
         throw new Error('Invalid response from server')
