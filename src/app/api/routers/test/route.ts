@@ -6,72 +6,60 @@ import { routerOSService } from '@/lib/routeros'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Test connection request received')
-    
-    // Check for session
     const session = await getServerSession(authOptions)
-    console.log('Session check result:', session ? 'Authenticated' : 'Not authenticated')
-    
     if (!session) {
-      console.log('Unauthorized test connection attempt - no session found')
-      return NextResponse.json({ error: 'Unauthorized - No session found' }, { status: 401 })
-    }
-
-    // Check if the session has the required user information
-    if (!session.user || !session.user.id) {
-      console.log('Invalid session - missing user information')
-      return NextResponse.json({ error: 'Unauthorized - Invalid session' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-    console.log('Test connection body:', body)
-    
     const { friendlyName, address, apiUsername, apiPassword, port, routerId } = body
 
-    if (!address || !apiUsername || !apiPassword) {
-      console.log('Missing required fields:', { address, apiUsername, apiPassword })
+    if (!friendlyName || !address || !apiUsername || !apiPassword) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     // Create a temporary router object for testing
-    const tempRouter = {
-      id: routerId || 'temp',
+    const testRouter = {
+      id: routerId || 'test',
       friendlyName,
       address,
       apiUsername,
       apiPassword,
       port: port || 8728,
-      lastCheckedAt: null,
       status: 'OFFLINE' as const,
       createdAt: new Date(),
-      updatedAt: new Date(),
+      updatedAt: new Date()
     }
 
-    console.log('Testing connection to:', { address, port, apiUsername })
+    // Test the connection
+    const testResult = await routerOSService.testConnection(testRouter)
 
-    const result = await routerOSService.testConnection(tempRouter)
-    
-    console.log('Connection test result:', result)
-
-    // If this is a test for an existing router, update its status in the database
+    // If this is testing an existing router, update its status in the database
     if (routerId) {
       try {
-        const newStatus = result.success ? 'ONLINE' : 'OFFLINE'
         await db.router.update({
           where: { id: routerId },
           data: {
-            status: newStatus,
+            status: testResult.success ? 'ONLINE' : 'OFFLINE',
             lastCheckedAt: new Date()
           }
         })
-        console.log(`Router status updated to ${newStatus} in database`)
+
+        // Log the connection test
+        await db.logEntry.create({
+          data: {
+            action: testResult.success ? 'ROUTER_CONNECTION_SUCCESS' : 'ROUTER_CONNECTION_FAILED',
+            routerId: routerId,
+            details: `Connection test ${testResult.success ? 'successful' : 'failed'}: ${testResult.error || 'Connected'}`
+          }
+        })
       } catch (updateError) {
         console.error('Failed to update router status:', updateError)
-        // Don't fail the test if status update fails
+        // Don't fail the test if the update fails
       }
     }
 
-    return NextResponse.json(result)
+    return NextResponse.json(testResult)
   } catch (error) {
     console.error('Error testing router connection:', error)
     return NextResponse.json({ 

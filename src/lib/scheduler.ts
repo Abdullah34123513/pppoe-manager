@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import { db } from './db'
 import { routerOSService } from './routeros'
 import { PPPoEStatus } from '@prisma/client'
-
-const db = new PrismaClient()
 
 export class ExpirationScheduler {
   private intervalId: NodeJS.Timeout | null = null
