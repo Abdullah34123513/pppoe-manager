@@ -54,16 +54,17 @@ export async function POST(request: NextRequest) {
     console.log('Connection test result:', result)
 
     // If this is a test for an existing router, update its status in the database
-    if (routerId && result.success) {
+    if (routerId) {
       try {
+        const newStatus = result.success ? 'ONLINE' : 'OFFLINE'
         await db.router.update({
           where: { id: routerId },
           data: {
-            status: 'ONLINE',
+            status: newStatus,
             lastCheckedAt: new Date()
           }
         })
-        console.log('Router status updated to ONLINE in database')
+        console.log(`Router status updated to ${newStatus} in database`)
       } catch (updateError) {
         console.error('Failed to update router status:', updateError)
         // Don't fail the test if status update fails
