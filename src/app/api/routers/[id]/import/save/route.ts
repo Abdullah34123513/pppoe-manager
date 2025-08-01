@@ -51,7 +51,7 @@ export async function POST(
       }
 
       // Check if user already exists
-      const existingUser = await db.pppoeUser.findFirst({
+      const existingUser = await db.pPPoEUser.findFirst({
         where: {
           routerId: params.id,
           username: user.username
@@ -64,7 +64,7 @@ export async function POST(
       }
 
       // Create the user
-      const createdUser = await db.pppoeUser.create({
+      const createdUser = await db.pPPoEUser.create({
         data: {
           routerId: params.id,
           username: user.username,

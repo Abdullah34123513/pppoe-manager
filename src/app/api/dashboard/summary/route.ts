@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     // Get user counts by status
-    const userCounts = await db.pppoeUser.groupBy({
+    const userCounts = await db.pPPoEUser.groupBy({
       by: ['status'],
       _count: {
         status: true
@@ -75,7 +75,7 @@ export async function GET() {
     const threeDaysFromNow = new Date()
     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3)
 
-    const expiringSoon = await db.pppoeUser.count({
+    const expiringSoon = await db.pPPoEUser.count({
       where: {
         status: PPPoEStatus.ACTIVE,
         expiryAt: {
@@ -86,7 +86,7 @@ export async function GET() {
     })
 
     // Get users without expiry dates
-    const usersWithoutExpiry = await db.pppoeUser.count({
+    const usersWithoutExpiry = await db.pPPoEUser.count({
       where: {
         expiryAt: null
       }

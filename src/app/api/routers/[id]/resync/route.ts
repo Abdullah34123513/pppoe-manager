@@ -36,7 +36,7 @@ export async function POST(
     const routerosUsers = result.data
 
     // Get existing users from database
-    const existingUsers = await db.pppoeUser.findMany({
+    const existingUsers = await db.pPPoEUser.findMany({
       where: { routerId: params.id }
     })
 
@@ -51,7 +51,7 @@ export async function POST(
 
     // Add new users
     for (const user of usersToAdd) {
-      await db.pppoeUser.create({
+      await db.pPPoEUser.create({
         data: {
           routerId: params.id,
           username: user.name,
@@ -67,7 +67,7 @@ export async function POST(
     for (const user of usersToUpdate) {
       const existingUser = existingUsers.find(u => u.username === user.name)
       if (existingUser) {
-        await db.pppoeUser.update({
+        await db.pPPoEUser.update({
           where: { id: existingUser.id },
           data: {
             status: user.disabled ? PPPoEStatus.DISABLED : existingUser.status,

@@ -33,7 +33,7 @@ export async function POST(
     const routerosUsers = result.data
 
     // Get existing users from database
-    const existingUsers = await db.pppoeUser.findMany({
+    const existingUsers = await db.pPPoEUser.findMany({
       where: { routerId: params.id }
     })
 
