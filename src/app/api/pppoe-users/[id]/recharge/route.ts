@@ -22,7 +22,7 @@ export async function POST(
       return NextResponse.json({ error: 'Days must be greater than 0' }, { status: 400 })
     }
 
-    const user = await db.pppoeUser.findUnique({
+    const user = await db.pPPoEUser.findUnique({
       where: { id: params.id },
       include: {
         router: true
@@ -47,7 +47,7 @@ export async function POST(
     }
 
     // Update user in database
-    const updatedUser = await db.pppoeUser.update({
+    const updatedUser = await db.pPPoEUser.update({
       where: { id: params.id },
       data: {
         expiryAt: newExpiry,

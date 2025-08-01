@@ -18,7 +18,7 @@ export async function POST(
     const body = await request.json()
     const { disable } = body
 
-    const user = await db.pppoeUser.findUnique({
+    const user = await db.pPPoEUser.findUnique({
       where: { id: params.id },
       include: {
         router: true
@@ -47,7 +47,7 @@ export async function POST(
     }
 
     // Update user status in database
-    const updatedUser = await db.pppoeUser.update({
+    const updatedUser = await db.pPPoEUser.update({
       where: { id: params.id },
       data: {
         status: newStatus

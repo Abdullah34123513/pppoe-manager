@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await db.pppoeUser.findUnique({
+    const user = await db.pPPoEUser.findUnique({
       where: { id: params.id },
       include: {
         router: {
@@ -53,7 +53,7 @@ export async function PUT(
     const body = await request.json()
     const { username, password } = body
 
-    const existingUser = await db.pppoeUser.findUnique({
+    const existingUser = await db.pPPoEUser.findUnique({
       where: { id: params.id },
       include: {
         router: true
@@ -68,7 +68,7 @@ export async function PUT(
     
     if (username && username !== existingUser.username) {
       // Check if username already exists on this router
-      const duplicateUser = await db.pppoeUser.findFirst({
+      const duplicateUser = await db.pPPoEUser.findFirst({
         where: {
           routerId: existingUser.routerId,
           username,
@@ -87,7 +87,7 @@ export async function PUT(
       updateData.password = password
     }
 
-    const user = await db.pppoeUser.update({
+    const user = await db.pPPoEUser.update({
       where: { id: params.id },
       data: updateData,
       include: {
@@ -127,7 +127,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await db.pppoeUser.findUnique({
+    const user = await db.pPPoEUser.findUnique({
       where: { id: params.id },
       include: {
         router: true
@@ -138,7 +138,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    await db.pppoeUser.delete({
+    await db.pPPoEUser.delete({
       where: { id: params.id }
     })
 

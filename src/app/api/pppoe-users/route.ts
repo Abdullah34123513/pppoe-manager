@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     }
 
     const [users, total] = await Promise.all([
-      db.pppoeUser.findMany({
+      db.pPPoEUser.findMany({
         where,
         include: {
           router: {
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit
       }),
-      db.pppoeUser.count({ where })
+      db.pPPoEUser.count({ where })
     ])
 
     return NextResponse.json({
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists on this router
-    const existingUser = await db.pppoeUser.findFirst({
+    const existingUser = await db.pPPoEUser.findFirst({
       where: {
         routerId,
         username
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     const expiryAt = new Date()
     expiryAt.setDate(expiryAt.getDate() + 30)
 
-    const user = await db.pppoeUser.create({
+    const user = await db.pPPoEUser.create({
       data: {
         routerId,
         username,

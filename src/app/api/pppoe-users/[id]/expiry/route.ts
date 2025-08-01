@@ -21,7 +21,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Expiry date is required' }, { status: 400 })
     }
 
-    const user = await db.pppoeUser.findUnique({
+    const user = await db.pPPoEUser.findUnique({
       where: { id: params.id },
       include: {
         router: true
@@ -36,7 +36,7 @@ export async function PUT(
     const newExpiry = new Date(expiryAt)
 
     // Update user in database
-    const updatedUser = await db.pppoeUser.update({
+    const updatedUser = await db.pPPoEUser.update({
       where: { id: params.id },
       data: {
         expiryAt: newExpiry
