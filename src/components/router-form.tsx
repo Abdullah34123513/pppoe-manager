@@ -42,6 +42,7 @@ export function RouterForm({ router, onSuccess, onCancel }: RouterFormProps) {
   const [testResult, setTestResult] = useState<{
     success: boolean
     message: string
+    suggestions?: string[]
   } | null>(null)
 
   const {
@@ -109,12 +110,13 @@ export function RouterForm({ router, onSuccess, onCancel }: RouterFormProps) {
       if (result.success) {
         setTestResult({
           success: true,
-          message: "Connection successful!",
+          message: result.message || "Connection successful!",
         })
       } else {
         setTestResult({
           success: false,
           message: result.error || "Connection failed",
+          suggestions: result.suggestions
         })
       }
     } catch (err) {
@@ -225,16 +227,34 @@ export function RouterForm({ router, onSuccess, onCancel }: RouterFormProps) {
       </div>
 
       {testResult && (
-        <Alert className={testResult.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
-          {testResult.success ? (
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          ) : (
-            <AlertTriangle className="h-4 w-4 text-red-500" />
+        <div className="space-y-3">
+          <Alert className={testResult.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
+            {testResult.success ? (
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+            )}
+            <AlertDescription className={testResult.success ? "text-green-700" : "text-red-700"}>
+              {testResult.message}
+            </AlertDescription>
+          </Alert>
+          
+          {testResult.suggestions && testResult.suggestions.length > 0 && (
+            <Alert className="border-blue-200 bg-blue-50">
+              <AlertTriangle className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-blue-700">
+                <div className="space-y-1">
+                  <p className="font-semibold">Troubleshooting suggestions:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    {testResult.suggestions.map((suggestion, index) => (
+                      <li key={index}>{suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+              </AlertDescription>
+            </Alert>
           )}
-          <AlertDescription className={testResult.success ? "text-green-700" : "text-red-700"}>
-            {testResult.message}
-          </AlertDescription>
-        </Alert>
+        </div>
       )}
 
       {error && (

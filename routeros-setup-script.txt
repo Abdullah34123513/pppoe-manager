@@ -1,0 +1,50 @@
+# RouterOS API Configuration Script for PPPoE Manager
+# 
+# Copy and paste these commands into your RouterOS terminal
+# or run them via WinBox Terminal
+
+# Enable API services
+/ip service enable api
+/ip service enable api-ssl
+
+# Configure API services to listen on all interfaces
+/ip service set api address=0.0.0.0/0
+/ip service set api-ssl address=0.0.0.0/0
+
+# Create firewall rules to allow API connections
+/ip firewall filter add chain=input protocol=tcp dst-port=8728 action=accept comment="Allow PPPoE Manager API"
+/ip firewall filter add chain=input protocol=tcp dst-port=8729 action=accept comment="Allow PPPoE Manager API-SSL"
+
+# Create dedicated API user for PPPoE Manager (optional)
+# Replace 'securepassword' with a strong password
+/user add name=pppoemanager password=securepassword group=full comment="PPPoE Manager API User"
+
+# Enable PPPoE server if not already enabled
+/interface pppoe-server server set enabled=yes
+
+# Create default PPPoE profile (if needed)
+/ppp profile add name=default-pppoe local-address=192.168.1.1 remote-address=pppoe-pool
+/ip pool add name=pppoe-pool ranges=192.168.1.100-192.168.1.200
+
+# Log the configuration
+/log info "RouterOS configured for PPPoE Manager API access"
+
+# Display current configuration
+echo "=== API Services ==="
+/ip service print where name~"api"
+echo ""
+echo "=== Firewall Rules for API ==="
+/ip firewall filter print where comment~"PPPoE Manager"
+echo ""
+echo "=== PPPoE Server Status ==="
+/interface pppoe-server server print
+echo ""
+echo "=== PPP Profiles ==="
+/ppp profile print
+echo ""
+echo "=== Configuration Complete ==="
+echo "You can now add this router to PPPoE Manager using:"
+echo "IP Address: [your router IP]"
+echo "API Port: 8728 (or 8729 for SSL)"
+echo "Username: admin or pppoemanager"
+echo "Password: [your password]"

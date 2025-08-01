@@ -16,30 +16,103 @@ export interface RouterOSResult {
   success: boolean
   data?: any
   error?: string
+  suggestions?: string[]
 }
 
 export class RouterOSService {
   private connection: RouterOSAPI | null = null
+  private connectionTimeout: number = 15000 // 15 seconds timeout
 
   async connect(router: Router): Promise<RouterOSResult> {
     try {
       console.log('RouterOSService: Connecting to', router.address, 'on port', router.port)
       
+      // Validate router configuration
+      if (!router.address || !router.apiUsername || !router.apiPassword) {
+        return {
+          success: false,
+          error: 'Missing router configuration',
+          suggestions: [
+            'Check router IP address',
+            'Check API username',
+            'Check API password'
+          ]
+        }
+      }
+
+      // Create connection with timeout
       this.connection = new RouterOSAPI({
         host: router.address,
         user: router.apiUsername,
         password: router.apiPassword,
         port: router.port,
+        timeout: this.connectionTimeout
       })
 
-      await this.connection.connect()
+      // Set up connection timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Connection timeout after ${this.connectionTimeout}ms`))
+        }, this.connectionTimeout)
+      })
+
+      // Connect with timeout
+      await Promise.race([
+        this.connection.connect(),
+        timeoutPromise
+      ])
+
       console.log('RouterOSService: Successfully connected to', router.address)
+      
+      // Test basic connectivity with a simple command
+      try {
+        const identity = await this.connection.write('/system/identity/print')
+        console.log('RouterOSService: Router identity:', identity[0]?.name || 'Unknown')
+      } catch (testError) {
+        console.warn('RouterOSService: Basic command test failed:', testError)
+      }
+
       return { success: true }
     } catch (error) {
       console.error('RouterOSService: Connection failed to', router.address, ':', error)
+      
+      // Provide specific error messages and suggestions
+      let errorMessage = error instanceof Error ? error.message : 'Unknown connection error'
+      let suggestions: string[] = []
+
+      if (errorMessage.includes('timeout')) {
+        suggestions = [
+          'Check if the router is running and accessible',
+          'Check if the router IP address is correct',
+          'Check if there is a firewall blocking the connection',
+          'Check if the API service is enabled on the router',
+          'Try pinging the router from this server'
+        ]
+      } else if (errorMessage.includes('ECONNREFUSED')) {
+        suggestions = [
+          'Check if the API service is enabled on the router',
+          'Check if the port number is correct',
+          'Check if the router is running'
+        ]
+      } else if (errorMessage.includes('authentication')) {
+        suggestions = [
+          'Check if the API username is correct',
+          'Check if the API password is correct',
+          'Check if the user has API permissions'
+        ]
+      } else {
+        suggestions = [
+          'Check network connectivity',
+          'Check router configuration',
+          'Check firewall settings',
+          'Verify API service is enabled'
+        ]
+      }
+
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown connection error' 
+        error: errorMessage,
+        suggestions
       }
     }
   }
@@ -61,6 +134,10 @@ export class RouterOSService {
       if (result.success) {
         await this.disconnect()
         console.log('RouterOSService: Connection test successful')
+        return { 
+          success: true,
+          message: 'Successfully connected to RouterOS device'
+        }
       }
       
       return result
@@ -68,7 +145,12 @@ export class RouterOSService {
       console.error('RouterOSService: Connection test error:', error)
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown connection error' 
+        error: error instanceof Error ? error.message : 'Unknown connection error',
+        suggestions: [
+          'Check network connectivity',
+          'Check router configuration',
+          'Verify API service is enabled'
+        ]
       }
     }
   }
@@ -81,10 +163,16 @@ export class RouterOSService {
       }
 
       if (!this.connection) {
-        return { success: false, error: 'No connection established' }
+        return { 
+          success: false, 
+          error: 'No connection established',
+          suggestions: ['Check router connection', 'Try reconnecting']
+        }
       }
 
+      console.log('RouterOSService: Fetching PPPoE users from', router.address)
       const users = await this.connection.write('/ppp/secret/print')
+      console.log('RouterOSService: Found', users.length, 'PPPoE users')
       
       await this.disconnect()
 
@@ -99,12 +187,22 @@ export class RouterOSService {
         comment: user.comment || '',
       }))
 
-      return { success: true, data: formattedUsers }
+      return { 
+        success: true, 
+        data: formattedUsers,
+        message: `Successfully fetched ${formattedUsers.length} users`
+      }
     } catch (error) {
       await this.disconnect()
+      console.error('RouterOSService: Error fetching users:', error)
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error fetching users' 
+        error: error instanceof Error ? error.message : 'Unknown error fetching users',
+        suggestions: [
+          'Check if PPPoE service is enabled on the router',
+          'Check if user has permission to access PPPoE secrets',
+          'Verify router connection'
+        ]
       }
     }
   }
