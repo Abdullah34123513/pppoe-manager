@@ -10,13 +10,14 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, CheckCircle, AlertTriangle } from "lucide-react"
+import { Loader2, CheckCircle, AlertTriangle, Zap } from "lucide-react"
 
 const userSchema = z.object({
   routerId: z.string().min(1, "Router is required"),
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
   days: z.number().min(1, "Days must be at least 1").default(30),
+  speedPlanId: z.string().optional(),
 })
 
 type UserFormData = z.infer<typeof userSchema>
@@ -28,6 +29,15 @@ interface Router {
   status: string
 }
 
+interface SpeedPlan {
+  id: string
+  name: string
+  downloadSpeed: number
+  uploadSpeed: number
+  description?: string
+  isActive: boolean
+}
+
 interface PPPoEUserFormProps {
   onSuccess: () => void
   onCancel: () => void
@@ -37,6 +47,7 @@ export function PPPoEUserForm({ onSuccess, onCancel }: PPPoEUserFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [routers, setRouters] = useState<Router[]>([])
+  const [speedPlans, setSpeedPlans] = useState<SpeedPlan[]>([])
   const [createResult, setCreateResult] = useState<{
     success: boolean
     message: string
@@ -63,6 +74,14 @@ export function PPPoEUserForm({ onSuccess, onCancel }: PPPoEUserFormProps) {
     fetchRouters()
   }, [])
 
+  useEffect(() => {
+    if (selectedRouterId) {
+      fetchSpeedPlans(selectedRouterId)
+    } else {
+      setSpeedPlans([])
+    }
+  }, [selectedRouterId])
+
   const fetchRouters = async () => {
     try {
       const response = await fetch("/api/routers")
@@ -72,6 +91,18 @@ export function PPPoEUserForm({ onSuccess, onCancel }: PPPoEUserFormProps) {
       }
     } catch (err) {
       console.error("Failed to fetch routers:", err)
+    }
+  }
+
+  const fetchSpeedPlans = async (routerId: string) => {
+    try {
+      const response = await fetch(`/api/speed-plans?routerId=${routerId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setSpeedPlans(data.filter((plan: SpeedPlan) => plan.isActive))
+      }
+    } catch (err) {
+      console.error("Failed to fetch speed plans:", err)
     }
   }
 
@@ -90,6 +121,7 @@ export function PPPoEUserForm({ onSuccess, onCancel }: PPPoEUserFormProps) {
           routerId: data.routerId,
           username: data.username,
           password: data.password,
+          speedPlanId: data.speedPlanId || null,
         }),
       })
 
@@ -184,6 +216,29 @@ export function PPPoEUserForm({ onSuccess, onCancel }: PPPoEUserFormProps) {
           <p className="text-sm text-red-500">{errors.days.message}</p>
         )}
       </div>
+
+      {speedPlans.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="speedPlanId">Speed Plan (Optional)</Label>
+          <Select 
+            value={watch("speedPlanId") || ""} 
+            onValueChange={(value) => setValue("speedPlanId", value || "")}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="No speed limit" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">No speed limit</SelectItem>
+              {speedPlans.map((plan) => (
+                <SelectItem key={plan.id} value={plan.id}>
+                  {plan.name} ({plan.downloadSpeed}/{plan.uploadSpeed} Kbps)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-gray-600">Apply download/upload speed limits to this user</p>
+        </div>
+      )}
 
       {createResult && (
         <div className="space-y-3">

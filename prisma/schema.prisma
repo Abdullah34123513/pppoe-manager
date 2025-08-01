@@ -31,6 +31,7 @@ model Router {
   updatedAt    DateTime @updatedAt
   
   pppoeUsers   PPPoEUser[]
+  speedPlans   SpeedPlan[]
   logs         LogEntry[]
   
   @@map("routers")
@@ -47,15 +48,35 @@ model PPPoEUser {
   importedAt      DateTime?
   source          PPPoESource   @default(MANUAL)
   lastRechargedAt DateTime?
+  speedPlanId     String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   
   router          Router        @relation(fields: [routerId], references: [id], onDelete: Cascade)
+  speedPlan       SpeedPlan?    @relation(fields: [speedPlanId], references: [id], onDelete: SetNull)
   expiryAdjustments ExpiryAdjustment[]
   logs            LogEntry[]
   
   @@unique([routerId, username])
   @@map("pppoe_users")
+}
+
+model SpeedPlan {
+  id          String   @id @default(cuid())
+  routerId    String
+  name        String
+  downloadSpeed Int    // in Kbps
+  uploadSpeed   Int    // in Kbps
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  router       Router       @relation(fields: [routerId], references: [id], onDelete: Cascade)
+  pppoeUsers   PPPoEUser[]
+  
+  @@unique([routerId, name])
+  @@map("speed_plans")
 }
 
 model ExpiryAdjustment {

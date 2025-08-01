@@ -207,7 +207,7 @@ export class RouterOSService {
     }
   }
 
-  async createUser(router: Router, username: string, password: string): Promise<RouterOSResult> {
+  async createUser(router: Router, username: string, password: string, speedPlan?: any): Promise<RouterOSResult> {
     try {
       console.log(`RouterOSService: Creating user "${username}" on router ${router.address}`)
       
@@ -225,19 +225,40 @@ export class RouterOSService {
       }
 
       console.log(`RouterOSService: Adding PPPoE secret for user "${username}"`)
-      await this.connection.write('/ppp/secret/add', [
+      
+      // Build the command parameters
+      const params = [
         `=name=${username}`,
         `=password=${password}`,
         '=service=pppoe',
-        '=profile=default',
-      ])
+      ]
+
+      // Add speed plan if provided
+      if (speedPlan) {
+        console.log(`RouterOSService: Applying speed plan "${speedPlan.name}" with ${speedPlan.downloadSpeed}/${speedPlan.uploadSpeed} Kbps`)
+        
+        // For RouterOS, we need to create or use a queue tree for speed limiting
+        // First, let's create a simple approach using rate-limit in the PPPoE secret
+        // Note: This is a basic implementation. For more advanced speed control,
+        // you would need to create queue trees and handle them separately.
+        
+        // Add rate limit parameters if supported
+        if (speedPlan.downloadSpeed && speedPlan.uploadSpeed) {
+          params.push(`=limit-at=${speedPlan.uploadSpeed}k/${speedPlan.downloadSpeed}k`)
+          params.push(`=max-limit=${speedPlan.uploadSpeed}k/${speedPlan.downloadSpeed}k`)
+        }
+      } else {
+        params.push('=profile=default')
+      }
+
+      await this.connection.write('/ppp/secret/add', params)
 
       console.log(`RouterOSService: Successfully created user "${username}" on RouterOS`)
       await this.disconnect()
 
       return { 
         success: true,
-        message: `Successfully created user "${username}" on RouterOS device`
+        message: `Successfully created user "${username}" on RouterOS device${speedPlan ? ` with speed plan "${speedPlan.name}"` : ''}`
       }
     } catch (error) {
       await this.disconnect()

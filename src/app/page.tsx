@@ -17,7 +17,8 @@ import {
   XCircle, 
   Plus,
   Activity,
-  RefreshCw
+  RefreshCw,
+  Zap
 } from "lucide-react"
 import Link from "next/link"
 
@@ -291,7 +292,7 @@ export default function Dashboard() {
           <CardDescription>Common tasks you might want to perform</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Link href="/routers">
               <Button variant="outline" className="w-full justify-start">
                 <Router className="mr-2 h-4 w-4" />
@@ -302,6 +303,12 @@ export default function Dashboard() {
               <Button variant="outline" className="w-full justify-start">
                 <Users className="mr-2 h-4 w-4" />
                 Manage Users
+              </Button>
+            </Link>
+            <Link href="/speed-plans">
+              <Button variant="outline" className="w-full justify-start">
+                <Zap className="mr-2 h-4 w-4" />
+                Speed Plans
               </Button>
             </Link>
             <Link href="/logs">

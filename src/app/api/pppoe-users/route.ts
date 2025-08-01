@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { routerId, username, password } = body
+    const { routerId, username, password, speedPlanId } = body
 
     if (!routerId || !username || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -106,13 +106,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User already exists on this router' }, { status: 400 })
     }
 
+    // Check if speed plan exists if provided
+    let speedPlan = null
+    if (speedPlanId) {
+      speedPlan = await db.speedPlan.findUnique({
+        where: { id: speedPlanId }
+      })
+      
+      if (!speedPlan) {
+        return NextResponse.json({ error: 'Speed plan not found' }, { status: 404 })
+      }
+    }
+
     // Calculate expiry date (30 days from now)
     const expiryAt = new Date()
     expiryAt.setDate(expiryAt.getDate() + 30)
 
     // First, try to create the user on the RouterOS device
     console.log(`Creating PPPoE user "${username}" on router "${router.friendlyName}"`)
-    const routerosResult = await routerOSService.createUser(router, username, password)
+    const routerosResult = await routerOSService.createUser(router, username, password, speedPlan)
     
     if (!routerosResult.success) {
       console.error('Failed to create user on RouterOS:', routerosResult.error)
@@ -133,7 +145,8 @@ export async function POST(request: NextRequest) {
         status: 'ACTIVE',
         activatedAt: new Date(),
         expiryAt,
-        source: 'MANUAL'
+        source: 'MANUAL',
+        speedPlanId: speedPlanId || null
       },
       include: {
         router: {
@@ -141,7 +154,15 @@ export async function POST(request: NextRequest) {
             id: true,
             friendlyName: true
           }
-        }
+        },
+        speedPlan: speedPlanId ? {
+          select: {
+            id: true,
+            name: true,
+            downloadSpeed: true,
+            uploadSpeed: true
+          }
+        } : false
       }
     })
 
@@ -151,7 +172,7 @@ export async function POST(request: NextRequest) {
         action: 'PPPOE_USER_CREATED',
         routerId,
         pppoeUserId: user.id,
-        details: `PPPoE user "${username}" created on router "${router.friendlyName}" and RouterOS device`
+        details: `PPPoE user "${username}" created on router "${router.friendlyName}" and RouterOS device${speedPlan ? ` with speed plan "${speedPlan.name}"` : ''}`
       }
     })
 
