@@ -75,15 +75,18 @@ export default function ImportUsersPage() {
       }
       const data = await response.json()
       setRouterInfo(data)
+      
+      // After getting router info, automatically fetch users
+      await fetchUsers()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error")
+      setLoading(false)
     }
   }
 
   const fetchUsers = async () => {
     if (!routerId) return
 
-    setLoading(true)
     try {
       const response = await fetch(`/api/routers/${routerId}/resync`, {
         method: "POST"
@@ -119,8 +122,6 @@ export default function ImportUsersPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error")
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -261,7 +262,11 @@ export default function ImportUsersPage() {
               <p className="text-gray-600 mb-4">
                 No PPPoE users found on this router or all users have already been imported.
               </p>
-              <Button onClick={fetchUsers}>
+              <Button onClick={async () => {
+                setLoading(true)
+                await fetchUsers()
+                setLoading(false)
+              }}>
                 <Download className="mr-2 h-4 w-4" />
                 Fetch Users from Router
               </Button>

@@ -91,7 +91,7 @@ export async function POST(
       data: {
         action: 'ROUTER_RESYNC',
         routerId: router.id,
-        details: `Resync completed: ${usersToAdd.length} new users imported, ${usersToUpdate.length.length} users updated`
+        details: `Resync completed: ${usersToAdd.length} new users imported, ${usersToUpdate.length} users updated`
       }
     })
 
