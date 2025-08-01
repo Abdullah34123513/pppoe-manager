@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { routerOSService } from '@/lib/routeros'
 
 export async function GET(request: NextRequest) {
   try {
@@ -109,6 +110,21 @@ export async function POST(request: NextRequest) {
     const expiryAt = new Date()
     expiryAt.setDate(expiryAt.getDate() + 30)
 
+    // First, try to create the user on the RouterOS device
+    console.log(`Creating PPPoE user "${username}" on router "${router.friendlyName}"`)
+    const routerosResult = await routerOSService.createUser(router, username, password)
+    
+    if (!routerosResult.success) {
+      console.error('Failed to create user on RouterOS:', routerosResult.error)
+      return NextResponse.json({ 
+        error: `Failed to create user on router: ${routerosResult.error}`,
+        suggestions: routerosResult.suggestions 
+      }, { status: 500 })
+    }
+
+    console.log(`Successfully created user "${username}" on RouterOS device`)
+
+    // If RouterOS creation succeeded, create the user in the database
     const user = await db.pPPoEUser.create({
       data: {
         routerId,
@@ -135,7 +151,7 @@ export async function POST(request: NextRequest) {
         action: 'PPPOE_USER_CREATED',
         routerId,
         pppoeUserId: user.id,
-        details: `PPPoE user "${username}" created on router "${router.friendlyName}"`
+        details: `PPPoE user "${username}" created on router "${router.friendlyName}" and RouterOS device`
       }
     })
 

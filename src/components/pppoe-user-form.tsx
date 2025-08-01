@@ -37,6 +37,11 @@ export function PPPoEUserForm({ onSuccess, onCancel }: PPPoEUserFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [routers, setRouters] = useState<Router[]>([])
+  const [createResult, setCreateResult] = useState<{
+    success: boolean
+    message: string
+    suggestions?: string[]
+  } | null>(null)
 
   const {
     register,
@@ -73,6 +78,7 @@ export function PPPoEUserForm({ onSuccess, onCancel }: PPPoEUserFormProps) {
   const onSubmit = async (data: UserFormData) => {
     setLoading(true)
     setError("")
+    setCreateResult(null)
 
     try {
       const response = await fetch("/api/pppoe-users", {
@@ -88,11 +94,25 @@ export function PPPoEUserForm({ onSuccess, onCancel }: PPPoEUserFormProps) {
       })
 
       if (response.ok) {
-        onSuccess()
-        reset()
+        setCreateResult({
+          success: true,
+          message: "User created successfully on both database and router!"
+        })
+        setTimeout(() => {
+          onSuccess()
+          reset()
+        }, 1500)
       } else {
         const result = await response.json()
-        setError(result.error || "Failed to create user")
+        if (result.suggestions) {
+          setCreateResult({
+            success: false,
+            message: result.error || "Failed to create user",
+            suggestions: result.suggestions
+          })
+        } else {
+          setError(result.error || "Failed to create user")
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error")
@@ -164,6 +184,37 @@ export function PPPoEUserForm({ onSuccess, onCancel }: PPPoEUserFormProps) {
           <p className="text-sm text-red-500">{errors.days.message}</p>
         )}
       </div>
+
+      {createResult && (
+        <div className="space-y-3">
+          <Alert className={createResult.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
+            {createResult.success ? (
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+            )}
+            <AlertDescription className={createResult.success ? "text-green-700" : "text-red-700"}>
+              {createResult.message}
+            </AlertDescription>
+          </Alert>
+          
+          {createResult.suggestions && createResult.suggestions.length > 0 && (
+            <Alert className="border-blue-200 bg-blue-50">
+              <AlertTriangle className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-blue-700">
+                <div className="space-y-1">
+                  <p className="font-semibold">Troubleshooting suggestions:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    {createResult.suggestions.map((suggestion, index) => (
+                      <li key={index}>{suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
 
       {error && (
         <Alert variant="destructive">

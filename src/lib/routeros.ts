@@ -209,15 +209,22 @@ export class RouterOSService {
 
   async createUser(router: Router, username: string, password: string): Promise<RouterOSResult> {
     try {
+      console.log(`RouterOSService: Creating user "${username}" on router ${router.address}`)
+      
       const connectResult = await this.connect(router)
       if (!connectResult.success) {
         return connectResult
       }
 
       if (!this.connection) {
-        return { success: false, error: 'No connection established' }
+        return { 
+          success: false, 
+          error: 'No connection established',
+          suggestions: ['Check router connection', 'Try reconnecting']
+        }
       }
 
+      console.log(`RouterOSService: Adding PPPoE secret for user "${username}"`)
       await this.connection.write('/ppp/secret/add', [
         `=name=${username}`,
         `=password=${password}`,
@@ -225,14 +232,50 @@ export class RouterOSService {
         '=profile=default',
       ])
 
+      console.log(`RouterOSService: Successfully created user "${username}" on RouterOS`)
       await this.disconnect()
 
-      return { success: true }
+      return { 
+        success: true,
+        message: `Successfully created user "${username}" on RouterOS device`
+      }
     } catch (error) {
       await this.disconnect()
+      console.error(`RouterOSService: Error creating user "${username}":`, error)
+      
+      let errorMessage = error instanceof Error ? error.message : 'Unknown error creating user'
+      let suggestions: string[] = []
+
+      if (errorMessage.includes('already exists') || errorMessage.includes('duplicate')) {
+        suggestions = [
+          'Check if the username already exists on the router',
+          'Try using a different username',
+          'Check the router for existing PPPoE secrets'
+        ]
+      } else if (errorMessage.includes('permission') || errorMessage.includes('access')) {
+        suggestions = [
+          'Check if the API user has permission to create PPPoE secrets',
+          'Verify user permissions on the router',
+          'Check if PPPoE service is enabled'
+        ]
+      } else if (errorMessage.includes('invalid') || errorMessage.includes('format')) {
+        suggestions = [
+          'Check if the username format is valid',
+          'Verify password requirements',
+          'Check for special characters in username or password'
+        ]
+      } else {
+        suggestions = [
+          'Check if PPPoE service is enabled on the router',
+          'Verify router connection',
+          'Check router configuration and permissions'
+        ]
+      }
+
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error creating user' 
+        error: errorMessage,
+        suggestions
       }
     }
   }
