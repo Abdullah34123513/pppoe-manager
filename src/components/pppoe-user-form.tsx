@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, CheckCircle, AlertTriangle, Zap } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, CheckCircle, AlertTriangle, Zap, Wifi, WifiOff, Info } from "lucide-react"
 
 const userSchema = z.object({
   routerId: z.string().min(1, "Router is required"),
@@ -218,25 +219,42 @@ export function PPPoEUserForm({ onSuccess, onCancel }: PPPoEUserFormProps) {
       </div>
 
       {speedPlans.length > 0 && (
-        <div className="space-y-2">
-          <Label htmlFor="speedPlanId">Speed Plan (Optional)</Label>
+        <div className="space-y-3">
+          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            Speed Plan (Optional)
+          </Label>
           <Select 
             value={watch("speedPlanId") || ""} 
             onValueChange={(value) => setValue("speedPlanId", value || "")}
           >
-            <SelectTrigger>
+            <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
               <SelectValue placeholder="No speed limit" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No speed limit</SelectItem>
+              <SelectItem value="">
+                <div className="flex items-center gap-2">
+                  <WifiOff className="w-4 h-4 text-gray-400" />
+                  <span>No speed limit</span>
+                </div>
+              </SelectItem>
               {speedPlans.map((plan) => (
                 <SelectItem key={plan.id} value={plan.id}>
-                  {plan.name} ({plan.downloadSpeed}/{plan.uploadSpeed} Kbps)
+                  <div className="flex items-center gap-2">
+                    <Wifi className="w-4 h-4 text-blue-500" />
+                    <div>
+                      <div className="font-medium">{plan.name}</div>
+                      <div className="text-xs text-gray-500">{plan.downloadSpeed}/{plan.uploadSpeed} Kbps</div>
+                    </div>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <p className="text-sm text-gray-600">Apply download/upload speed limits to this user</p>
+          <p className="text-sm text-gray-600 flex items-center gap-1">
+            <Info className="w-4 h-4" />
+            Apply download/upload speed limits to this user
+          </p>
         </div>
       )}
 

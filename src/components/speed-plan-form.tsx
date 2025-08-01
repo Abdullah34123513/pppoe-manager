@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,7 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, CheckCircle, AlertTriangle, Zap } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { 
+  Loader2, 
+  CheckCircle, 
+  AlertTriangle, 
+  Zap, 
+  Wifi, 
+  WifiOff,
+  TrendingUp,
+  TrendingDown,
+  Router as RouterIcon,
+  Info
+} from "lucide-react"
 
 const speedPlanSchema = z.object({
   routerId: z.string().min(1, "Router is required"),
@@ -63,6 +76,8 @@ export function SpeedPlanForm({ onSuccess, onCancel }: SpeedPlanFormProps) {
 
   const selectedRouterId = watch("routerId")
   const isActive = watch("isActive")
+  const downloadSpeed = watch("downloadSpeed")
+  const uploadSpeed = watch("uploadSpeed")
 
   useEffect(() => {
     fetchRouters()
@@ -121,135 +136,289 @@ export function SpeedPlanForm({ onSuccess, onCancel }: SpeedPlanFormProps) {
     return `${kbps} Kbps`
   }
 
+  const getSpeedTier = (speed: number) => {
+    if (speed >= 10000) return { label: "Ultra Fast", color: "text-green-600", bg: "bg-green-50" }
+    if (speed >= 5000) return { label: "Very Fast", color: "text-blue-600", bg: "bg-blue-50" }
+    if (speed >= 1000) return { label: "Fast", color: "text-yellow-600", bg: "bg-yellow-50" }
+    return { label: "Basic", color: "text-orange-600", bg: "bg-orange-50" }
+  }
+
+  const downloadTier = getSpeedTier(downloadSpeed || 0)
+  const uploadTier = getSpeedTier(uploadSpeed || 0)
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="routerId">Router</Label>
-        <Select 
-          value={selectedRouterId} 
-          onValueChange={(value) => setValue("routerId", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a router" />
-          </SelectTrigger>
-          <SelectContent>
-            {routers.map((router) => (
-              <SelectItem key={router.id} value={router.id}>
-                {router.friendlyName} ({router.address})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.routerId && (
-          <p className="text-sm text-red-500">{errors.routerId.message}</p>
+    <div className="space-y-6">
+      <AnimatePresence>
+        {createResult && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <Alert className={createResult.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
+              {createResult.success ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+              )}
+              <AlertDescription className={createResult.success ? "text-green-700" : "text-red-700"}>
+                {createResult.message}
+              </AlertDescription>
+            </Alert>
+          </motion.div>
         )}
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="name">Plan Name</Label>
-        <Input
-          id="name"
-          {...register("name")}
-          placeholder="Basic Plan"
-        />
-        {errors.name && (
-          <p className="text-sm text-red-500">{errors.name.message}</p>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
 
-      <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Router Selection */}
         <div className="space-y-2">
-          <Label htmlFor="downloadSpeed">Download Speed</Label>
-          <Input
-            id="downloadSpeed"
-            type="number"
-            {...register("downloadSpeed", { valueAsNumber: true })}
-            placeholder="1024"
-            min="1"
-            max="1000000"
-          />
-          <p className="text-xs text-gray-600">
-            {watch("downloadSpeed") && formatSpeed(watch("downloadSpeed"))}
-          </p>
-          {errors.downloadSpeed && (
-            <p className="text-sm text-red-500">{errors.downloadSpeed.message}</p>
+          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <RouterIcon className="w-4 h-4" />
+            Router
+          </Label>
+          <Select 
+            value={selectedRouterId} 
+            onValueChange={(value) => setValue("routerId", value)}
+          >
+            <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+              <SelectValue placeholder="Select a router" />
+            </SelectTrigger>
+            <SelectContent>
+              {routers.map((router) => (
+                <SelectItem key={router.id} value={router.id}>
+                  <div className="flex items-center gap-2">
+                    <RouterIcon className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <div className="font-medium">{router.friendlyName}</div>
+                      <div className="text-xs text-gray-500">{router.address}</div>
+                    </div>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.routerId && (
+            <p className="text-sm text-red-500 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              {errors.routerId.message}
+            </p>
           )}
         </div>
 
+        {/* Plan Name */}
         <div className="space-y-2">
-          <Label htmlFor="uploadSpeed">Upload Speed</Label>
+          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            Plan Name
+          </Label>
           <Input
-            id="uploadSpeed"
-            type="number"
-            {...register("uploadSpeed", { valueAsNumber: true })}
-            placeholder="512"
-            min="1"
-            max="1000000"
+            {...register("name")}
+            placeholder="e.g., Basic Plan, Premium Plan, Ultra Fast"
+            className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
           />
-          <p className="text-xs text-gray-600">
-            {watch("uploadSpeed") && formatSpeed(watch("uploadSpeed"))}
-          </p>
-          {errors.uploadSpeed && (
-            <p className="text-sm text-red-500">{errors.uploadSpeed.message}</p>
+          {errors.name && (
+            <p className="text-sm text-red-500 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              {errors.name.message}
+            </p>
           )}
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="description">Description (Optional)</Label>
-        <Textarea
-          id="description"
-          {...register("description")}
-          placeholder="Basic internet plan for home users"
-          rows={3}
-        />
-        {errors.description && (
-          <p className="text-sm text-red-500">{errors.description.message}</p>
-        )}
-      </div>
+        {/* Speed Configuration */}
+        <div className="space-y-4">
+          <Label className="text-sm font-medium text-gray-700">Speed Configuration</Label>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Download Speed */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                  <TrendingDown className="w-4 h-4 text-green-600" />
+                  Download Speed
+                </Label>
+                <div className={`text-xs px-2 py-1 rounded-full ${downloadTier.bg} ${downloadTier.color}`}>
+                  {downloadTier.label}
+                </div>
+              </div>
+              <div className="relative">
+                <Input
+                  type="number"
+                  {...register("downloadSpeed", { valueAsNumber: true })}
+                  placeholder="1024"
+                  min="1"
+                  max="1000000"
+                  className="border-gray-300 focus:border-green-500 focus:ring-green-500 pr-16"
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">
+                  Kbps
+                </div>
+              </div>
+              {downloadSpeed && (
+                <div className="text-sm font-medium text-green-600">
+                  {formatSpeed(downloadSpeed)}
+                </div>
+              )}
+              {errors.downloadSpeed && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  {errors.downloadSpeed.message}
+                </p>
+              )}
+            </div>
 
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="isActive"
-          checked={isActive}
-          onCheckedChange={(checked) => setValue("isActive", checked)}
-        />
-        <Label htmlFor="isActive">Active</Label>
-      </div>
+            {/* Upload Speed */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                  Upload Speed
+                </Label>
+                <div className={`text-xs px-2 py-1 rounded-full ${uploadTier.bg} ${uploadTier.color}`}>
+                  {uploadTier.label}
+                </div>
+              </div>
+              <div className="relative">
+                <Input
+                  type="number"
+                  {...register("uploadSpeed", { valueAsNumber: true })}
+                  placeholder="512"
+                  min="1"
+                  max="1000000"
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-16"
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">
+                  Kbps
+                </div>
+              </div>
+              {uploadSpeed && (
+                <div className="text-sm font-medium text-blue-600">
+                  {formatSpeed(uploadSpeed)}
+                </div>
+              )}
+              {errors.uploadSpeed && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  {errors.uploadSpeed.message}
+                </p>
+              )}
+            </div>
+          </div>
 
-      {createResult && (
-        <Alert className={createResult.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
-          {createResult.success ? (
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          ) : (
-            <AlertTriangle className="h-4 w-4 text-red-500" />
+          {/* Speed Preview */}
+          {downloadSpeed && uploadSpeed && (
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Wifi className="w-5 h-5 text-green-600" />
+                  <span className="font-medium text-gray-700">Speed Preview</span>
+                </div>
+                <Badge className="bg-green-100 text-green-800">
+                  {downloadSpeed >= uploadSpeed ? "Download Optimized" : "Upload Optimized"}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="text-center">
+                  <div className="text-green-600 font-semibold">{formatSpeed(downloadSpeed)}</div>
+                  <div className="text-gray-600">Download</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-blue-600 font-semibold">{formatSpeed(uploadSpeed)}</div>
+                  <div className="text-gray-600">Upload</div>
+                </div>
+              </div>
+            </div>
           )}
-          <AlertDescription className={createResult.success ? "text-green-700" : "text-red-700"}>
-            {createResult.message}
-          </AlertDescription>
-        </Alert>
-      )}
+        </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="flex gap-2 pt-4">
-        <Button type="submit" disabled={loading} className="flex-1">
-          {loading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Zap className="mr-2 h-4 w-4" />
+        {/* Description */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <Info className="w-4 h-4" />
+            Description (Optional)
+          </Label>
+          <Textarea
+            {...register("description")}
+            placeholder="Brief description of this speed plan..."
+            rows={3}
+            className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 resize-none"
+          />
+          <p className="text-xs text-gray-500">
+            {watch("description")?.length || 0}/200 characters
+          </p>
+          {errors.description && (
+            <p className="text-sm text-red-500 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              {errors.description.message}
+            </p>
           )}
-          Create Speed Plan
-        </Button>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-    </form>
+        </div>
+
+        {/* Status Toggle */}
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${isActive ? 'bg-green-100' : 'bg-gray-200'}`}>
+              {isActive ? (
+                <Wifi className="w-5 h-5 text-green-600" />
+              ) : (
+                <WifiOff className="w-5 h-5 text-gray-500" />
+              )}
+            </div>
+            <div>
+              <div className="font-medium text-gray-900">Active Status</div>
+              <div className="text-sm text-gray-600">
+                {isActive ? "Plan is available for new users" : "Plan is hidden from users"}
+              </div>
+            </div>
+          </div>
+          <Switch
+            checked={isActive}
+            onCheckedChange={(checked) => setValue("isActive", checked)}
+            className="data-[state=checked]:bg-green-600"
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-4">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Zap className="mr-2 h-4 w-4" />
+                Create Speed Plan
+              </>
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            className="border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </div>
   )
 }
