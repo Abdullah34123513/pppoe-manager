@@ -49,6 +49,7 @@ export function RouterForm({ router, onSuccess, onCancel }: RouterFormProps) {
     handleSubmit,
     formState: { errors },
     reset,
+    getValues,
   } = useForm<RouterFormData>({
     resolver: zodResolver(routerSchema),
     defaultValues: router ? {
