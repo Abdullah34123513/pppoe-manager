@@ -76,11 +76,18 @@ export default function RoutersPage() {
     }
   }
 
-  const testConnection = async (routerId: string) => {
+  const testConnection = async (routerId: string, routerData: any) => {
     setTestingRouter(routerId)
     try {
-      const response = await fetch(`/api/routers/${routerId}/test`, {
-        method: "POST"
+      const response = await fetch("/api/routers/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...routerData,
+          routerId: routerId
+        })
       })
       const result = await response.json()
       
@@ -241,7 +248,7 @@ export default function RoutersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => testConnection(router.id)}
+                      onClick={() => testConnection(router.id, router)}
                       disabled={testingRouter === router.id}
                     >
                       {testingRouter === router.id ? (
@@ -320,10 +327,20 @@ export default function RoutersPage() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => {
-                          fetch(`/api/routers/${router.id}/resync`, {
-                            method: "POST"
-                          }).then(() => fetchRouters())
+                        onClick={async () => {
+                          try {
+                            const response = await fetch(`/api/routers/${router.id}/resync`, {
+                              method: "POST"
+                            })
+                            if (response.ok) {
+                              await fetchRouters()
+                            } else {
+                              const error = await response.json()
+                              setError(error.error || "Failed to resync router")
+                            }
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : "Unknown error")
+                          }
                         }}
                       >
                         Resync
