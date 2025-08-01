@@ -1,5 +1,6 @@
 // server.ts - Next.js Standalone + Socket.IO
 import { setupSocket } from '@/lib/socket';
+import { expirationScheduler } from '@/lib/scheduler';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import next from 'next';
@@ -41,6 +42,29 @@ async function createCustomServer() {
     });
 
     setupSocket(io);
+
+    // Start the expiration scheduler
+    expirationScheduler.start();
+    console.log('Expiration scheduler started');
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM received, shutting down gracefully...');
+      expirationScheduler.stop();
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGINT', () => {
+      console.log('SIGINT received, shutting down gracefully...');
+      expirationScheduler.stop();
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+    });
 
     // Start the server
     server.listen(currentPort, hostname, () => {

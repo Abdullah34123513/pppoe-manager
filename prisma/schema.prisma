@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,20 +10,100 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model Admin {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
+  username  String   @unique
+  password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Router {
+  id           String   @id @default(cuid())
+  friendlyName String
+  address      String
+  apiUsername  String
+  apiPassword  String
+  port         Int      @default(8728)
+  lastCheckedAt DateTime?
+  status       RouterStatus @default(OFFLINE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  pppoeUsers   PPPoEUser[]
+  logs         LogEntry[]
+  
+  @@map("routers")
+}
+
+model PPPoEUser {
+  id              String        @id @default(cuid())
+  routerId        String
+  username        String
+  password        String?
+  status          PPPoEStatus   @default(ACTIVE)
+  activatedAt     DateTime      @default(now())
+  expiryAt        DateTime?
+  importedAt      DateTime?
+  source          PPPoESource   @default(MANUAL)
+  lastRechargedAt DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  router          Router        @relation(fields: [routerId], references: [id], onDelete: Cascade)
+  expiryAdjustments ExpiryAdjustment[]
+  logs            LogEntry[]
+  
+  @@unique([routerId, username])
+  @@map("pppoe_users")
+}
+
+model ExpiryAdjustment {
+  id             String          @id @default(cuid())
+  pppoeUserId    String
+  previousExpiry DateTime?
+  newExpiry      DateTime?
+  type           AdjustmentType
+  timestamp      DateTime        @default(now())
+  
+  pppoeUser      PPPoEUser       @relation(fields: [pppoeUserId], references: [id], onDelete: Cascade)
+  
+  @@map("expiry_adjustments")
+}
+
+model LogEntry {
+  id          String      @id @default(cuid())
+  action      String
+  routerId    String?
+  pppoeUserId String?
+  details     String
+  timestamp   DateTime    @default(now())
+  
+  router      Router?     @relation(fields: [routerId], references: [id], onDelete: SetNull)
+  pppoeUser   PPPoEUser?  @relation(fields: [pppoeUserId], references: [id], onDelete: SetNull)
+  
+  @@map("log_entries")
+}
+
+enum RouterStatus {
+  ONLINE
+  OFFLINE
+  ERROR
+}
+
+enum PPPoEStatus {
+  ACTIVE
+  EXPIRED
+  DISABLED
+}
+
+enum PPPoESource {
+  IMPORTED
+  MANUAL
+}
+
+enum AdjustmentType {
+  IMPORT_SET
+  RECHARGE
+  MANUAL_EDIT
 }
