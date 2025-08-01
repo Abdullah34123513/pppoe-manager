@@ -77,7 +77,20 @@ export function RouterForm({ router, onSuccess, onCancel }: RouterFormProps) {
         body: JSON.stringify(data),
       })
 
-      const result = await response.json()
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
+      // Parse JSON with error handling
+      let result
+      try {
+        result = await response.json()
+      } catch (jsonError) {
+        console.error('JSON parsing error:', jsonError)
+        throw new Error('Invalid response from server')
+      }
       
       if (result.success) {
         setTestResult({
@@ -91,6 +104,7 @@ export function RouterForm({ router, onSuccess, onCancel }: RouterFormProps) {
         })
       }
     } catch (err) {
+      console.error('Test connection error:', err)
       setTestResult({
         success: false,
         message: err instanceof Error ? err.message : "Unknown error",

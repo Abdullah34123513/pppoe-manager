@@ -23,6 +23,8 @@ export class RouterOSService {
 
   async connect(router: Router): Promise<RouterOSResult> {
     try {
+      console.log('RouterOSService: Connecting to', router.address, 'on port', router.port)
+      
       this.connection = new RouterOSAPI({
         host: router.address,
         user: router.apiUsername,
@@ -31,8 +33,10 @@ export class RouterOSService {
       })
 
       await this.connection.connect()
+      console.log('RouterOSService: Successfully connected to', router.address)
       return { success: true }
     } catch (error) {
+      console.error('RouterOSService: Connection failed to', router.address, ':', error)
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown connection error' 
@@ -48,13 +52,20 @@ export class RouterOSService {
   }
 
   async testConnection(router: Router): Promise<RouterOSResult> {
+    console.log('RouterOSService: Testing connection to', router.address)
+    
     try {
       const result = await this.connect(router)
+      console.log('RouterOSService: Connect result:', result)
+      
       if (result.success) {
         await this.disconnect()
+        console.log('RouterOSService: Connection test successful')
       }
+      
       return result
     } catch (error) {
+      console.error('RouterOSService: Connection test error:', error)
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown connection error' 
