@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { db } from '@/lib/db'
 import { routerOSService } from '@/lib/routeros'
 
 export async function POST(request: NextRequest) {
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('Test connection body:', body)
     
-    const { friendlyName, address, apiUsername, apiPassword, port } = body
+    const { friendlyName, address, apiUsername, apiPassword, port, routerId } = body
 
     if (!address || !apiUsername || !apiPassword) {
       console.log('Missing required fields:', { address, apiUsername, apiPassword })
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     // Create a temporary router object for testing
     const tempRouter = {
-      id: 'temp',
+      id: routerId || 'temp',
       friendlyName,
       address,
       apiUsername,
@@ -51,6 +52,23 @@ export async function POST(request: NextRequest) {
     const result = await routerOSService.testConnection(tempRouter)
     
     console.log('Connection test result:', result)
+
+    // If this is a test for an existing router, update its status in the database
+    if (routerId && result.success) {
+      try {
+        await db.router.update({
+          where: { id: routerId },
+          data: {
+            status: 'ONLINE',
+            lastCheckedAt: new Date()
+          }
+        })
+        console.log('Router status updated to ONLINE in database')
+      } catch (updateError) {
+        console.error('Failed to update router status:', updateError)
+        // Don't fail the test if status update fails
+      }
+    }
 
     return NextResponse.json(result)
   } catch (error) {

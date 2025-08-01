@@ -74,7 +74,10 @@ export function RouterForm({ router, onSuccess, onCancel }: RouterFormProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          routerId: router?.id || null
+        }),
       })
 
       console.log('Test connection response status:', response.status)
